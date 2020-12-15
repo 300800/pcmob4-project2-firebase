@@ -13,9 +13,9 @@ export default function NotesScreen({ navigation, route }) {
   const [notes, setNotes] = useState([]);
 
   firebase.firestore().collection("testing").add({
-    testing: "Hello",
-    doesThisWork: 5,
-    isItLunchTime: true,
+    testing: "added new notes at 12.39",
+    doesThisWork: 10,
+    isItDinnerTime: true,
   });
 
   // This is to set up the top right button
@@ -45,6 +45,8 @@ export default function NotesScreen({ navigation, route }) {
         done: false,
         id: notes.length.toString(),
       };
+
+      firebase.firestore().collection("todos").add(newNote);
       setNotes([...notes, newNote]);
     }
   }, [route.params?.text]);
