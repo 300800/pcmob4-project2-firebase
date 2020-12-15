@@ -7,9 +7,16 @@ import {
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import firebase from "../database/firebaseDB";
 
 export default function NotesScreen({ navigation, route }) {
   const [notes, setNotes] = useState([]);
+
+  firebase.firestore().collection("testing").add({
+    testing: "Hello",
+    doesThisWork: 5,
+    isItLunchTime: true,
+  });
 
   // This is to set up the top right button
   useEffect(() => {
