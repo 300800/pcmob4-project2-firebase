@@ -11,6 +11,7 @@ import firebase from "../database/firebaseDB";
 
 export default function NotesScreen({ navigation, route }) {
   const [notes, setNotes] = useState([]);
+  const db = firebase.firestore().collection("todos");
 
   //when the  screen loads, we start monitoring firebase
   useEffect(() => {
@@ -53,7 +54,7 @@ export default function NotesScreen({ navigation, route }) {
         id: notes.length.toString(),
       };
 
-      firebase.firestore().collection("todos").add(newNote);
+      db.add(newNote);
     }
   }, [route.params?.text]);
 
