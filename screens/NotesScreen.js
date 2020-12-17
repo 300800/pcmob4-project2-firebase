@@ -12,11 +12,18 @@ import firebase from "../database/firebaseDB";
 export default function NotesScreen({ navigation, route }) {
   const [notes, setNotes] = useState([]);
 
-  firebase.firestore().collection("testing").add({
-    testing: "added new notes at 12.39",
-    doesThisWork: 10,
-    isItDinnerTime: true,
-  });
+  //when the  screen loads, we start monitoring firebase
+  useEffect(() => {
+    const unsubscribe = firebase
+      .firestore()
+      .collection("todos")
+      .onSnapshot((collection) => {
+        const updatedNotes = collection.docs.map((doc) => doc.data());
+        setNotes(updatedNotes);
+      });
+
+    return unsubscribe; // return the cleanup function
+  }, []);
 
   // This is to set up the top right button
   useEffect(() => {
@@ -47,7 +54,6 @@ export default function NotesScreen({ navigation, route }) {
       };
 
       firebase.firestore().collection("todos").add(newNote);
-      setNotes([...notes, newNote]);
     }
   }, [route.params?.text]);
 
