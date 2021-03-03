@@ -6,25 +6,63 @@ import {
   TouchableOpacity,
   FlatList,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import firebase from "../database/firebaseDB";
+import * as SQLite from "expo-sqlite";
+import * as fileSystem from "expo-file-system";
+import { NavigationContainer } from "@react-navigation/native";
+
+const db = SQLite.openDatabase("notes.db");
+console.log(fileSystem.documentDirectory);
 
 export default function NotesScreen({ navigation, route }) {
   const [notes, setNotes] = useState([]);
-  const db = firebase.firestore().collection("todos");
+  //const db = firebase.firestore().collection("todos");
+
+  function refreshNotes() {
+    db.transaction((tx) => {
+      tx.executeSql(
+        "SELECT * FROM notes",
+        null,
+        (txObj, { rows: { _array } }) => setNotes(_array),
+        (txObj, error) => console.log(`Error: ${error}`)
+      );
+    });
+  }
+
+  // This is to set up the database on first run
+  useEffect(() => {
+    db.transaction(
+      (tx) => {
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS notes(id INTERGER PRIMARY KEY AUTOINCREMENT, title TEXT, done INT)`
+        );
+      },
+      null,
+      refreshNotes
+    );
+  }, []);
 
   //when the  screen loads, we start monitoring firebase
-  useEffect(() => {
-    const unsubscribe = firebase
-      .firestore()
-      .collection("todos")
-      .onSnapshot((collection) => {
-        const updatedNotes = collection.docs.map((doc) => doc.data());
-        setNotes(updatedNotes);
-      });
+  // useEffect(() => {
+  //   const unsubscribe = db
+  //     .orderBy("created", "desc")
+  //     .onSnapshot((collection) => {
+  //       const updatedNotes = collection.docs.map((doc) => {
+  //         //create our own Object that pulls the ID into a property
+  //         const noteObject = {
+  //           ...doc.data(),
+  //           id: doc.id,
+  //         };
+  //         console.log(noteObject);
+  //         return noteObject;
+  //       });
+  //       setNotes(updatedNotes);
+  //     });
 
-    return unsubscribe; // return the cleanup function
-  }, []);
+  //   return unsubscribe; // return the cleanup function
+  // }, []);
 
   // This is to set up the top right button
   useEffect(() => {
@@ -48,15 +86,27 @@ export default function NotesScreen({ navigation, route }) {
   // Monitor route.params for changes and add items to the database
   useEffect(() => {
     if (route.params?.text) {
-      const newNote = {
-        title: route.params.text,
-        done: false,
-        id: notes.length.toString(),
-      };
-
-      db.add(newNote);
+      db.transaction(
+        (tx) => {
+          tx.executeSql("INSERT INTO notes (done, title) VALUES (0, ?)", [
+            route.params.text,
+          ]);
+        },
+        null,
+        refreshNotes
+      );
     }
   }, [route.params?.text]);
+
+  //     const newNote = {
+  //       title: route.params.text,
+  //       done: false,
+  //       id: notes.length.toString(),
+  //       created: firebase.firestore.FieldValue.serverTimestamp(),
+  //     };
+  //     db.add(newNote);
+  //   }
+  // }, [route.params?.text]);
 
   function addNote() {
     navigation.navigate("Add Screen");
@@ -65,9 +115,20 @@ export default function NotesScreen({ navigation, route }) {
   // This deletes an individual note
   function deleteNote(id) {
     console.log("Deleting " + id);
-    // To delete that item, we filter out the item we don't want
-    setNotes(notes.filter((item) => item.id !== id));
+    db.transaction(
+      (tx) => {
+        tx.executeSql(`DELETE FROM notes WHERE id=${id}`);
+      },
+      null,
+      refreshNotes
+    );
   }
+  // firebase.firestore().collection("todos");
+  // db.where("id", "==", id)
+  //   .get()
+  //   .then((querySnapshot) => {
+  //     querySnapshot.forEach((doc) => doc.ref.delete());
+  //   });
 
   // The function to render each row in our FlatList
   function renderItem({ item }) {
